@@ -36,15 +36,18 @@ function getSofiaDate(offset = 0) {
   }).formatToParts(new Date());
 
   const values = {};
+
   for (const part of parts) {
     values[part.type] = part.value;
   }
 
-  const date = new Date(Date.UTC(
-    Number(values.year),
-    Number(values.month) - 1,
-    Number(values.day) + offset
-  ));
+  const date = new Date(
+    Date.UTC(
+      Number(values.year),
+      Number(values.month) - 1,
+      Number(values.day) + offset
+    )
+  );
 
   return [
     date.getUTCFullYear(),
@@ -60,61 +63,86 @@ app.get("/api/fixtures", async (req, res) => {
     });
   }
 
+  const requestedDays = Number.parseInt(req.query.days || "3", 10);
   const days = Math.min(
     7,
-    Math.max(1, Number.parseInt(req.query.days || "3", 10) || 3)
+    Math.max(1, Number.isFinite(requestedDays) ? requestedDays : 3)
+  );
+
+  const dates = Array.from(
+    { length: days },
+    (_, index) => getSofiaDate(index)
   );
 
   try {
-    const dates = Array.from(
-      { length: days },
-      (_, index) => getSofiaDate(index)
-    );
-
-    const results = await Promise.all(
+    const dailyResults = await Promise.all(
       dates.map(async (date) => {
-        const url = new URL(
-          "https://v3.football.api-sports.io/fixtures"
-        );
+        try {
+          const url = new URL(
+            "https://v3.football.api-sports.io/fixtures"
+          );
 
-        url.searchParams.set("date", date);
-        url.searchParams.set("timezone", "Europe/Sofia");
+          url.searchParams.set("date", date);
+          url.searchParams.set("timezone", "Europe/Sofia");
 
-        const response = await fetch(url, {
-          headers: {
-            "x-apisports-key": API_KEY
+          const response = await fetch(url, {
+            headers: {
+              "x-apisports-key": API_KEY
+            }
+          });
+
+          const data = await response.json();
+
+          if (!response.ok) {
+            return {
+              date,
+              fixtures: [],
+              error: {
+                status: response.status,
+                details: data
+              }
+            };
           }
-        });
 
-        const data = await response.json();
+          if (
+            data.errors &&
+            Object.keys(data.errors).length > 0
+          ) {
+            return {
+              date,
+              fixtures: [],
+              error: data.errors
+            };
+          }
 
-        if (!response.ok) {
-          throw new Error(JSON.stringify({
+          return {
             date,
-            status: response.status,
-            details: data
-          }));
-        }
-
-        if (
-          data.errors &&
-          Object.keys(data.errors).length > 0
-        ) {
-          throw new Error(JSON.stringify({
+            fixtures: data.response || [],
+            error: null
+          };
+        } catch (error) {
+          return {
             date,
-            details: data.errors
-          }));
+            fixtures: [],
+            error: error.message
+          };
         }
-
-        return data.response || [];
       })
     );
 
-    const fixtures = results.flat();
+    const fixtures = dailyResults
+      .flatMap((result) => result.fixtures)
+      .sort(
+        (a, b) =>
+          new Date(a.fixture.date) - new Date(b.fixture.date)
+      );
 
-    fixtures.sort((a, b) => {
-      return new Date(a.fixture.date) - new Date(b.fixture.date);
-    });
+    const errors = dailyResults
+      .filter((result) => result.error)
+      .map((result) => ({
+        date: result.date,
+        details: result.error
+      }));
 
     return res.json({
       get: "fixtures",
@@ -123,7 +151,7 @@ app.get("/api/fixtures", async (req, res) => {
         dates,
         timezone: "Europe/Sofia"
       },
-      errors: {},
+      errors,
       results: fixtures.length,
       paging: {
         current: 1,
@@ -132,7 +160,7 @@ app.get("/api/fixtures", async (req, res) => {
       response: fixtures
     });
   } catch (error) {
-    console.error("MatchScope fixtures error:", error.message);
+    console.error("MatchScope API error:", error);
 
     return res.status(502).json({
       error: "Не успяхме да заредим мачовете.",
