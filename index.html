@@ -8,18 +8,68 @@
 <body><main class="wrap"><header class="top"><div class="logo">⚽</div><div><div class="brand">MatchScope</div><div class="sub">Футболен анализ · Android</div></div><div class="pill">ПЪРВА ВЕРСИЯ</div></header>
 <section class="hero"><h1>По-малко гадаене.<br>Повече проверими данни.</h1><p>Зареждане на предстоящи срещи, анализ на статистика и проследяване на прогнозите. Не гарантира печалба.</p><div class="stats"><div class="stat"><b id="matchCount">—</b><span>предстоящи мачове</span></div><div class="stat"><b id="savedCount">0</b><span>записани прогнози</span></div><div class="stat"><b id="hitRate">—</b><span>успеваемост</span></div></div></section>
 <div class="tabs"><button class="active" data-tab="matches">Мачове</button><button class="secondary" data-tab="journal">Журнал</button><button class="secondary" data-tab="settings">Настройки</button></div>
-<section id="matches"><div class="section"><h2>Предстоящи мачове</h2><button id="refresh" class="secondary">Обнови</button></div><div id="status" class="notice">Приложението е готово за настройка. За реални мачове е необходим API ключ и публикуван защитен достъп до API.</div><div id="matchList"><div class="empty">Няма заредени реални мачове.<br>Свържи източник от „Настройки“.</div></div><div class="section"><h2>Пазари за анализ</h2><span class="hint">при налични данни</span></div><div class="market"><div><b>Голове</b><span>Над/под · гол/гол</span></div><div><b>Резултат</b><span>1X2 · двоен шанс</span></div><div><b>Корнери</b><span>Общо и по отбор</span></div><div><b>Картони</b><span>Общо и по отбор</span></div></div></section>
+<section id="matches"><div class="section"><h2>Предстоящи мачове</h2><button id="refresh" class="secondary">Обнови</button></div><div id="status" class="notice">Свързване със сървъра на MatchScope…</div><div id="matchList"><div class="empty">Зареждане на предстоящите мачове…</div></div><div class="section"><h2>Пазари за анализ</h2><span class="hint">при налични данни</span></div><div class="market"><div><b>Голове</b><span>Над/под · гол/гол</span></div><div><b>Резултат</b><span>1X2 · двоен шанс</span></div><div><b>Корнери</b><span>Общо и по отбор</span></div><div><b>Картони</b><span>Общо и по отбор</span></div></div></section>
 <section id="journal" class="hide"><div class="section"><h2>Журнал на прогнозите</h2><button id="export" class="secondary">CSV</button></div><div class="notice">Прогнозите трябва да се записват преди началото на срещата, за да измерим реалната успеваемост.</div><div id="journalList" class="empty">Все още няма записани прогнози.</div></section>
-<section id="settings" class="hide"><div class="section"><h2>Източник на данни</h2></div><div class="card"><p style="margin-top:0">За да зареждаме реални мачове автоматично, приложението трябва да се свърже с футболен API.</p><label for="apiKey">API ключ (запазва се само на това устройство)</label><input id="apiKey" type="password" placeholder="Въведи ключ, когато го имаш" autocomplete="off"><label for="apiBase">Адрес на API сървъра</label><input id="apiBase" value="https://v3.football.api-sports.io" autocomplete="off"><label for="days">Колко дни напред да търсим</label><select id="days"><option value="1">Днес и утре</option><option value="3" selected>Следващите 3 дни</option><option value="7">Следващите 7 дни</option></select><button id="saveSettings" class="full">Запази настройките</button><button id="testApi" class="full secondary">Пробвай да заредиш мачове</button></div><div class="notice"><b>Важно за сигурността:</b> това е прототип. Запазването на API ключ в браузъра не е подходящо за публично приложение. Преди реално публикуване трябва да се добави защитен сървър, който пази ключа. Не въвеждай паролата си за Winbet тук.</div></section>
+<section id="settings" class="hide"><div class="section"><h2>Източник на данни</h2></div><div class="card"><p style="margin-top:0">Мачовете се зареждат през сървъра на MatchScope.</p><label for="days">Колко дни напред да търсим</label><select id="days"><option value="1">Днес</option><option value="3" selected>Следващите 3 дни</option><option value="7">Следващите 7 дни</option></select><button id="saveSettings" class="full">Запази настройките</button><button id="testApi" class="full secondary">Пробвай да заредиш мачове</button></div></section>
 <footer>MatchScope · Аналитичен инструмент, не финансов съвет.</footer></main>
 <script>
-const $=id=>document.getElementById(id);let matches=[],journal=JSON.parse(localStorage.getItem('ms_journal')||'[]');const savedKey=localStorage.getItem('ms_key')||'';$('apiKey').value=savedKey;$('apiBase').value=localStorage.getItem('ms_base')||'https://v3.football.api-sports.io';$('days').value=localStorage.getItem('ms_days')||'3';
+const $=id=>document.getElementById(id);let matches=[],journal=JSON.parse(localStorage.getItem('ms_journal')||'[]');$('days').value=localStorage.getItem('ms_days')||'3';
 document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{document.querySelectorAll('[data-tab]').forEach(x=>{x.classList.toggle('active',x===b);x.classList.toggle('secondary',x!==b)});['matches','journal','settings'].forEach(id=>$(id).classList.toggle('hide',id!==b.dataset.tab));if(b.dataset.tab==='journal')renderJournal()});
-function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}function dateFmt(s){try{return new Date(s).toLocaleString('bg-BG',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}catch{return s}}
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}function dateFmt(s){try{return new Date(s).toLocaleString('bg-BG',{timeZone:'Europe/Sofia',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}catch{return s}}
 function renderMatches(){ $('matchCount').textContent=matches.length;$('matchList').innerHTML=matches.length?matches.map((m,i)=>`<article class="card"><div class="league">${esc(m.league)} · ${esc(m.country||'')}</div><div class="row"><div class="teams">${esc(m.home)}<br>${esc(m.away)}</div><div style="text-align:right"><div class="time">${esc(dateFmt(m.date))}</div><div class="tag">Предстои</div></div></div><button class="full" onclick="savePrediction(${i})">Запиши за проследяване</button></article>`).join(''):'<div class="empty">Няма заредени мачове за избрания период.</div>'}
 window.savePrediction=i=>{const m=matches[i];journal.unshift({id:Date.now(),home:m.home,away:m.away,date:m.date,market:'Няма избран пазар',prediction:'Чака избор',result:'Непроверена',savedAt:new Date().toISOString()});localStorage.setItem('ms_journal',JSON.stringify(journal));updateStats();alert('Мачът е записан в журнала. В следващата итерация добавяме избор на пазар и прогноза.');};function updateStats(){$('savedCount').textContent=journal.length;const done=journal.filter(x=>x.result==='Позната'||x.result==='Грешна');$('hitRate').textContent=done.length?Math.round(done.filter(x=>x.result==='Позната').length/done.length*100)+'%':'—'}function renderJournal(){if(!journal.length){$('journalList').className='empty';$('journalList').textContent='Все още няма записани прогнози.';return}$('journalList').className='';$('journalList').innerHTML=journal.map(m=>`<article class="card"><div class="league">${esc(dateFmt(m.date))}</div><b>${esc(m.home)} – ${esc(m.away)}</b><p class="small">Пазар: ${esc(m.market)} · Прогноза: ${esc(m.prediction)}</p><span class="tag">${esc(m.result)}</span></article>`).join('')};updateStats();
-$('saveSettings').onclick=()=>{localStorage.setItem('ms_key',$('apiKey').value.trim());localStorage.setItem('ms_base',$('apiBase').value.trim().replace(/\/$/,''));localStorage.setItem('ms_days',$('days').value);$('status').innerHTML='<span class="ok">Настройките са запазени на това устройство.</span> За реални заявки приложението трябва да е публикувано на HTTPS и достъпът до API да е разрешен от доставчика.';alert('Настройките са запазени.');};
-$('testApi').onclick=async()=>{const key=$('apiKey').value.trim(),base=$('apiBase').value.trim().replace(/\/$/,'');if(!key){alert('Първо е необходим API ключ. Засега не е нужно да се регистрираш, ако не си готов.');return}const btn=$('testApi');btn.disabled=true;btn.textContent='Зареждане…';$('status').textContent='Опит за връзка с футболния източник…';try{const from=new Date(),to=new Date();to.setDate(to.getDate()+Number($('days').value));const fmt=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;const r=await fetch(`${base}/fixtures?from=${fmt(from)}&to=${fmt(to)}`,{headers:{'x-apisports-key':key}});if(!r.ok)throw new Error('HTTP '+r.status+' — провери ключа и разрешенията');const data=await r.json();if(data.errors&&Object.keys(data.errors).length)throw new Error(JSON.stringify(data.errors));matches=(data.response||[]).map(x=>({home:x.teams?.home?.name||'Домакин',away:x.teams?.away?.name||'Гост',date:x.fixture?.date,league:x.league?.name||'Първенство',country:x.league?.country||''}));renderMatches();$('status').innerHTML=`<span class="ok">Успешно заредени ${matches.length} мача.</span> Заявки: ${esc(data.paging?.current||1)} страница.`;}catch(e){$('status').innerHTML=`<span class="bad">Не успяхме да заредим данните:</span> ${esc(e.message)}. Възможно е браузърът да блокира заявката (CORS) или ключът да е невалиден. Публичната версия трябва да използва защитен сървър.`}finally{btn.disabled=false;btn.textContent='Пробвай да заредиш мачове'}};$('refresh').onclick=()=>$('testApi').click();
+const fixturesUrl = 'https://matchscope-api-xjjz.onrender.com/api/fixtures';
+
+async function loadMatches() {
+  const refresh = $('refresh');
+  const test = $('testApi');
+  if (refresh.disabled) return;
+  refresh.disabled = test.disabled = true;
+  $('status').textContent = 'Зареждане на мачове от сървъра…';
+
+  try {
+    const response = await fetch(fixturesUrl + '?days=' + $('days').value, {
+      signal: AbortSignal.timeout(90000)
+    });
+    const data = await response.json();
+    const errors = data.errors && Object.keys(data.errors).length
+      ? JSON.stringify(data.errors)
+      : '';
+    if (!response.ok || !Array.isArray(data.response) || (errors && !data.response.length)) {
+      throw new Error(data.error || errors || 'HTTP ' + response.status);
+    }
+
+    const now = Date.now();
+    matches = data.response
+      .filter(match => ['NS', 'TBD'].includes(match.fixture?.status?.short) &&
+        Date.parse(match.fixture.date) > now)
+      .map(match => ({
+        home: match.teams?.home?.name || 'Домакин',
+        away: match.teams?.away?.name || 'Гост',
+        date: match.fixture.date,
+        league: match.league?.name || 'Първенство',
+        country: match.league?.country || ''
+      }));
+    renderMatches();
+    $('status').textContent = errors
+      ? 'Частични данни. Заредени предстоящи мачове: ' + matches.length
+      : 'Заредени предстоящи мачове: ' + matches.length;
+  } catch (error) {
+    $('status').textContent = 'Грешка при зареждане: ' + error.message +
+      (matches.length ? ' Показват се последно заредените мачове.' : '');
+    if (!matches.length) $('matchList').textContent = 'Няма заредени мачове.';
+  } finally {
+    refresh.disabled = test.disabled = false;
+  }
+}
+
+$('saveSettings').onclick = () => {
+  localStorage.setItem('ms_days', $('days').value);
+  loadMatches();
+};
+$('refresh').onclick = loadMatches;
+$('testApi').onclick = loadMatches;
+loadMatches();
 $('export').onclick=()=>{if(!journal.length){alert('Няма прогнози за експортиране.');return}const csv=['date,home,away,market,prediction,result',...journal.map(x=>[x.date,x.home,x.away,x.market,x.prediction,x.result].map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(','))].join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'}));a.download='matchscope-journal.csv';a.click();URL.revokeObjectURL(a.href)};
 if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
 </script></body></html>
