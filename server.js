@@ -1,5 +1,6 @@
 
 const express = require("express");
+const { validatePortfolio } = require("./chani-portfolio");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -10,7 +11,7 @@ app.use((req, res, next) => {
     "Access-Control-Allow-Origin",
     "https://chaniq7-blip.github.io"
   );
-  res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
   if (req.method === "OPTIONS") {
@@ -166,6 +167,16 @@ app.get("/api/fixtures", async (req, res) => {
       error: "Не успяхме да заредим мачовете.",
       details: error.message
     });
+  }
+});
+
+app.post("/api/chani/portfolio/validate", express.json({ limit: "32kb" }), (req, res) => {
+  try {
+    const { matchIds, slips } = req.body || {};
+    return res.json({ slips: validatePortfolio(matchIds, slips) });
+  } catch (error) {
+    if (!(error instanceof TypeError)) throw error;
+    return res.status(400).json({ error: error.message });
   }
 });
 
